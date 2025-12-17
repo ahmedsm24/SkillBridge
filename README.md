@@ -1,4 +1,4 @@
-# Resume-to-Training Module Generator
+# SkillBridge
 
 An AI-powered application that analyzes resumes, identifies skill gaps compared to job requirements, and generates personalized training modules to bridge those gaps. This system is designed for research on "reverse human-machine learning" where humans learn from machine-generated training content.
 
