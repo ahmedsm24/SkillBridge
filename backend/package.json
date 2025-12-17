@@ -1,0 +1,50 @@
+{
+  "name": "larsonwork-backend",
+  "version": "1.0.0",
+  "description": "Multi-Agent SaaS Platform Backend API",
+  "main": "src/main.py",
+  "scripts": {
+    "dev": "uvicorn src.main:app --reload --host 0.0.0.0 --port 8000",
+    "start": "uvicorn src.main:app --host 0.0.0.0 --port 8000",
+    "build": "echo 'No build step required for Python'",
+    "test": "pytest",
+    "lint": "black . && flake8 ."
+  },
+  "dependencies": {
+    "fastapi": "^0.104.1",
+    "uvicorn": "^0.24.0",
+    "python-multipart": "^0.0.6",
+    "pdfplumber": "^0.10.3",
+    "langchain-openai": "^0.0.5",
+    "python-jose": "^3.3.0",
+    "passlib": "^1.7.4",
+    "bcrypt": "^4.1.2",
+    "sqlalchemy": "^2.0.23",
+    "alembic": "^1.13.1",
+    "psycopg2-binary": "^2.9.9",
+    "redis": "^5.0.1",
+    "pydantic": "^2.5.2",
+    "pydantic-settings": "^2.1.0",
+    "langchain": "^0.1.0",
+    "langgraph": "^0.0.20",
+    "openai": "^1.6.1",
+    "anthropic": "^0.7.8",
+    "qdrant-client": "^1.7.0",
+    "chromadb": "^0.4.22",
+    "sentence-transformers": "^2.2.2",
+    "transformers": "^4.36.2",
+    "torch": "^2.1.2",
+    "websockets": "^12.0",
+    "python-socketio": "^5.10.0",
+    "celery": "^5.3.4",
+    "prometheus-client": "^0.19.0"
+  },
+  "devDependencies": {
+    "pytest": "^7.4.3",
+    "pytest-asyncio": "^0.21.1",
+    "black": "^23.12.0",
+    "flake8": "^6.1.0",
+    "mypy": "^1.8.0"
+  }
+}
+
