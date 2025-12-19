@@ -4,13 +4,15 @@ import { useState } from 'react'
 import ResumeUpload from '@/components/ResumeUpload'
 import JobDescriptionForm from '@/components/JobDescriptionForm'
 import GapAnalysisResults from '@/components/GapAnalysisResults'
+import ProjectForm from '@/components/ProjectForm'
 import TrainingModules from '@/components/TrainingModules'
 
 const steps = [
   { id: 'upload', label: 'Resume', number: 1 },
   { id: 'job', label: 'Job Description', number: 2 },
   { id: 'analysis', label: 'Analysis', number: 3 },
-  { id: 'training', label: 'Training', number: 4 },
+  { id: 'project', label: 'Project', number: 4 },
+  { id: 'training', label: 'Training', number: 5 },
 ]
 
 export default function Home() {
@@ -18,7 +20,8 @@ export default function Home() {
   const [jobDescriptionId, setJobDescriptionId] = useState<number | null>(null)
   const [gapAnalysisId, setGapAnalysisId] = useState<number | null>(null)
   const [trainingModuleId, setTrainingModuleId] = useState<number | null>(null)
-  const [currentStep, setCurrentStep] = useState<'upload' | 'job' | 'analysis' | 'training'>('upload')
+  const [projectTrainingData, setProjectTrainingData] = useState<any>(null)
+  const [currentStep, setCurrentStep] = useState<'upload' | 'job' | 'analysis' | 'project' | 'training'>('upload')
 
   const handleResumeUploaded = (id: number) => {
     setResumeId(id)
@@ -32,6 +35,17 @@ export default function Home() {
 
   const handleGapAnalysisComplete = (id: number) => {
     setGapAnalysisId(id)
+    setCurrentStep('project')
+  }
+
+  const handleProjectTrainingGenerated = (id: number, data: any) => {
+    setTrainingModuleId(id)
+    setProjectTrainingData(data)
+    setCurrentStep('training')
+  }
+
+  const handleSkipProject = () => {
+    // Skip to general training
     setCurrentStep('training')
   }
 
@@ -62,7 +76,7 @@ export default function Home() {
               <div key={step.id} className="flex items-center flex-1">
                 <div className="flex flex-col items-center">
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
+                    className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-medium transition-all ${
                       index < currentStepIndex
                         ? 'bg-[var(--accent-secondary)] text-white'
                         : index === currentStepIndex
@@ -78,14 +92,14 @@ export default function Home() {
                       step.number
                     )}
                   </div>
-                  <span className={`mt-3 text-xs font-medium tracking-wide uppercase ${
+                  <span className={`mt-2 text-xs font-medium tracking-wide uppercase hidden sm:block ${
                     index <= currentStepIndex ? 'text-[var(--text-secondary)]' : 'text-[var(--text-muted)]'
                   }`}>
                     {step.label}
                   </span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`flex-1 h-px mx-6 mt-[-24px] transition-all ${
+                  <div className={`flex-1 h-px mx-3 mt-[-20px] sm:mt-[-24px] transition-all ${
                     index < currentStepIndex ? 'bg-[var(--accent-secondary)]' : 'bg-[var(--border-color)]'
                   }`} />
                 )}
@@ -95,7 +109,7 @@ export default function Home() {
         </nav>
 
         {/* Content Card */}
-        <div className="card p-10 animate-fade-in-delay-2">
+        <div className="card p-8 sm:p-10 animate-fade-in-delay-2">
           {currentStep === 'upload' && (
             <ResumeUpload onUploaded={handleResumeUploaded} />
           )}
@@ -116,11 +130,22 @@ export default function Home() {
             />
           )}
 
+          {currentStep === 'project' && resumeId && gapAnalysisId && (
+            <ProjectForm
+              resumeId={resumeId}
+              gapAnalysisId={gapAnalysisId}
+              onGenerated={handleProjectTrainingGenerated}
+              onBack={() => setCurrentStep('analysis')}
+              onSkip={handleSkipProject}
+            />
+          )}
+
           {currentStep === 'training' && gapAnalysisId && (
             <TrainingModules
               gapAnalysisId={gapAnalysisId}
               onGenerated={handleTrainingGenerated}
-              onBack={() => setCurrentStep('analysis')}
+              onBack={() => setCurrentStep('project')}
+              projectData={projectTrainingData}
             />
           )}
         </div>

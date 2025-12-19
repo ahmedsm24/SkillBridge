@@ -294,4 +294,264 @@ class TrainingGenerator:
             "resources": [],
             "estimated_duration": "1 week"
         }
+    
+    def generate_project_training(
+        self,
+        gap_analysis: Dict[str, Any],
+        project_info: Dict[str, Any],
+        existing_skills: List[str]
+    ) -> Dict[str, Any]:
+        """
+        Generate training modules tailored for a specific project.
+        
+        This creates a two-phase training program:
+        1. Foundation Phase: Fill skill gaps from resume analysis
+        2. Project Phase: Project-specific skills and knowledge
+        
+        Args:
+            gap_analysis: Results from gap analysis
+            project_info: Project details including name, description, tech stack, team context
+            existing_skills: Skills the candidate already has
+            
+        Returns:
+            Dictionary with project-tailored training module structure
+        """
+        project_name = project_info.get("name", "Project")
+        project_description = project_info.get("description", "")
+        tech_stack = project_info.get("tech_stack", [])
+        team_role = project_info.get("team_role", "Developer")
+        organization = project_info.get("organization", "")
+        project_goals = project_info.get("goals", [])
+        timeline = project_info.get("timeline", "")
+        
+        priority_gaps = gap_analysis.get("gap_priority", [])
+        
+        # Generate using LLM if available
+        if self.llm:
+            try:
+                return self._generate_project_training_llm(
+                    priority_gaps, project_info, existing_skills
+                )
+            except Exception as e:
+                logger.warning(f"LLM project training generation failed: {str(e)}")
+        
+        # Fallback to template-based generation
+        return self._generate_project_training_template(
+            priority_gaps, project_info, existing_skills
+        )
+    
+    def _generate_project_training_llm(
+        self,
+        priority_gaps: List[Dict[str, Any]],
+        project_info: Dict[str, Any],
+        existing_skills: List[str]
+    ) -> Dict[str, Any]:
+        """Generate project-specific training using LLM"""
+        prompt = ChatPromptTemplate.from_messages([
+            ("system", """You are an expert corporate training designer specializing in onboarding team members for specific projects.
+            Create a comprehensive two-phase training program:
+            
+            PHASE 1 - FOUNDATION: Address skill gaps to bring the team member up to speed
+            PHASE 2 - PROJECT SPECIFIC: Train on project-specific requirements, tools, and context
+            
+            Return only valid JSON."""),
+            ("human", """
+            Team Member Info:
+            - Current Skills: {existing_skills}
+            - Role: {team_role}
+            - Skill Gaps: {priority_gaps}
+            
+            Project Info:
+            - Project Name: {project_name}
+            - Description: {project_description}
+            - Tech Stack: {tech_stack}
+            - Organization: {organization}
+            - Goals: {project_goals}
+            - Timeline: {timeline}
+            
+            Create a training program with two phases. Return JSON with this structure:
+            {{
+                "title": "Training Program Title",
+                "description": "Overall description",
+                "team_role": "Role name",
+                "project_name": "Project name",
+                "phases": [
+                    {{
+                        "phase_number": 1,
+                        "phase_name": "Foundation Training",
+                        "description": "Phase description",
+                        "modules": [...]
+                    }},
+                    {{
+                        "phase_number": 2,
+                        "phase_name": "Project-Specific Training",
+                        "description": "Phase description",
+                        "modules": [...]
+                    }}
+                ],
+                "learning_objectives": ["obj1", "obj2"],
+                "modules": [full list of all modules],
+                "case_studies": [...],
+                "resources": [...],
+                "estimated_duration": "Total duration",
+                "milestones": [
+                    {{"week": 1, "milestone": "Description", "deliverable": "What they should complete"}}
+                ]
+            }}
+            """)
+        ])
+        
+        chain = prompt | self.llm
+        result = chain.invoke({
+            "priority_gaps": json.dumps(priority_gaps[:5]),
+            "existing_skills": str(existing_skills[:15]),
+            "team_role": project_info.get("team_role", "Developer"),
+            "project_name": project_info.get("name", "Project"),
+            "project_description": project_info.get("description", ""),
+            "tech_stack": str(project_info.get("tech_stack", [])),
+            "organization": project_info.get("organization", ""),
+            "project_goals": str(project_info.get("goals", [])),
+            "timeline": project_info.get("timeline", "")
+        }).content
+        
+        try:
+            training_data = json.loads(result.strip())
+            return training_data
+        except json.JSONDecodeError:
+            logger.error("Failed to parse LLM response for project training")
+            return self._generate_project_training_template(
+                priority_gaps, project_info, existing_skills
+            )
+    
+    def _generate_project_training_template(
+        self,
+        priority_gaps: List[Dict[str, Any]],
+        project_info: Dict[str, Any],
+        existing_skills: List[str]
+    ) -> Dict[str, Any]:
+        """Generate project-specific training using templates"""
+        project_name = project_info.get("name", "Project")
+        tech_stack = project_info.get("tech_stack", [])
+        team_role = project_info.get("team_role", "Developer")
+        organization = project_info.get("organization", "Organization")
+        
+        # Phase 1: Foundation modules based on skill gaps
+        foundation_modules = []
+        for i, gap in enumerate(priority_gaps[:3]):
+            skill = gap.get("skill", "Unknown Skill")
+            foundation_modules.append({
+                "title": f"Foundation {i+1}: {skill.title()}",
+                "description": f"Build foundational knowledge in {skill}",
+                "phase": "foundation",
+                "learning_objectives": [
+                    f"Understand core concepts of {skill}",
+                    f"Apply {skill} in practical scenarios"
+                ],
+                "content": [
+                    {"section": "Core Concepts", "content": f"Fundamental concepts of {skill}"},
+                    {"section": "Best Practices", "content": f"Industry best practices for {skill}"}
+                ],
+                "practical_exercises": [
+                    {"title": f"{skill} Fundamentals", "description": f"Hands-on practice with {skill}"}
+                ],
+                "estimated_duration": "1 week",
+                "difficulty": "intermediate"
+            })
+        
+        # Phase 2: Project-specific modules
+        project_modules = []
+        
+        # Tech stack modules
+        for i, tech in enumerate(tech_stack[:3]):
+            project_modules.append({
+                "title": f"Project Tech: {tech}",
+                "description": f"Learn {tech} as used in {project_name}",
+                "phase": "project",
+                "learning_objectives": [
+                    f"Understand {tech} in the context of {project_name}",
+                    f"Apply {tech} to project requirements"
+                ],
+                "content": [
+                    {"section": "Overview", "content": f"How {tech} is used in {project_name}"},
+                    {"section": "Project Setup", "content": f"Setting up {tech} for the project"}
+                ],
+                "practical_exercises": [
+                    {"title": f"{tech} Project Task", "description": f"Complete a task using {tech} for {project_name}"}
+                ],
+                "estimated_duration": "3-5 days",
+                "difficulty": "intermediate"
+            })
+        
+        # Project context module
+        project_modules.append({
+            "title": f"Project Context: {project_name}",
+            "description": f"Understanding {project_name} goals, architecture, and workflow",
+            "phase": "project",
+            "learning_objectives": [
+                "Understand project goals and objectives",
+                "Learn project architecture and codebase",
+                "Understand team workflow and processes"
+            ],
+            "content": [
+                {"section": "Project Overview", "content": f"Goals and scope of {project_name}"},
+                {"section": "Architecture", "content": "Technical architecture and design decisions"},
+                {"section": "Team Workflow", "content": "Development workflow, code review, deployment"}
+            ],
+            "practical_exercises": [
+                {"title": "Codebase Exploration", "description": "Navigate and understand the project codebase"},
+                {"title": "First Contribution", "description": "Make your first contribution to the project"}
+            ],
+            "estimated_duration": "1 week",
+            "difficulty": "intermediate"
+        })
+        
+        all_modules = foundation_modules + project_modules
+        
+        return {
+            "title": f"{team_role} Training for {project_name}",
+            "description": f"Comprehensive training program for {team_role} joining {project_name} at {organization}",
+            "team_role": team_role,
+            "project_name": project_name,
+            "organization": organization,
+            "phases": [
+                {
+                    "phase_number": 1,
+                    "phase_name": "Foundation Training",
+                    "description": "Build foundational skills based on identified gaps",
+                    "modules": foundation_modules,
+                    "estimated_duration": f"{len(foundation_modules)} weeks"
+                },
+                {
+                    "phase_number": 2,
+                    "phase_name": "Project-Specific Training",
+                    "description": f"Learn project-specific skills for {project_name}",
+                    "modules": project_modules,
+                    "estimated_duration": f"{len(project_modules)} weeks"
+                }
+            ],
+            "learning_objectives": [
+                "Bridge identified skill gaps",
+                f"Gain proficiency in {project_name} tech stack",
+                "Understand project context and contribute effectively",
+                f"Integrate into {organization} team workflow"
+            ],
+            "modules": all_modules,
+            "case_studies": [
+                {
+                    "title": f"{project_name} Feature Implementation",
+                    "description": f"Walk through implementing a feature in {project_name}",
+                    "learning_outcomes": ["Understand development workflow", "Apply learned skills"]
+                }
+            ],
+            "resources": [
+                {"type": "documentation", "title": "Project Documentation", "url": "Internal docs"},
+                {"type": "tutorial", "title": "Tech Stack Tutorials", "url": "Relevant tutorials"}
+            ],
+            "estimated_duration": f"{len(all_modules) + 1} weeks",
+            "milestones": [
+                {"week": 1, "milestone": "Foundation Complete", "deliverable": "Pass foundation assessments"},
+                {"week": len(foundation_modules) + 1, "milestone": "Project Onboarded", "deliverable": "First PR merged"},
+                {"week": len(all_modules), "milestone": "Fully Productive", "deliverable": "Independent task completion"}
+            ]
+        }
 

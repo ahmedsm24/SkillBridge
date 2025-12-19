@@ -40,6 +40,16 @@ class JobDescriptionInput(BaseModel):
     domain: Optional[str] = Field(None, description="Industry domain (e.g., biotech, finance)")
 
 
+class ProjectInput(BaseModel):
+    name: str = Field(..., description="Project name")
+    description: str = Field(..., description="Project description and goals")
+    organization: Optional[str] = Field(None, description="Organization or company name")
+    team_role: str = Field(..., description="Role of the person being trained (e.g., ML Intern, Backend Developer)")
+    tech_stack: Optional[List[str]] = Field(default=[], description="Technologies used in the project")
+    goals: Optional[List[str]] = Field(default=[], description="Project goals and objectives")
+    timeline: Optional[str] = Field(None, description="Expected timeline for onboarding")
+
+
 class TrainingModuleResponse(BaseModel):
     id: int
     title: str
@@ -313,4 +323,99 @@ async def list_training_modules(
         }
         for m in modules
     ]
+
+
+@router.post("/projects/training")
+async def generate_project_training(
+    resume_id: int = Form(...),
+    gap_analysis_id: int = Form(...),
+    project_name: str = Form(...),
+    project_description: str = Form(...),
+    team_role: str = Form(...),
+    organization: str = Form(None),
+    tech_stack: str = Form(""),  # Comma-separated
+    goals: str = Form(""),  # Comma-separated
+    timeline: str = Form(None),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate project-specific training modules.
+    
+    This creates a two-phase training program:
+    1. Foundation Phase: Fill skill gaps from resume analysis
+    2. Project Phase: Project-specific skills and knowledge
+    """
+    # Get resume and gap analysis
+    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    gap_analysis = db.query(GapAnalysis).filter(GapAnalysis.id == gap_analysis_id).first()
+    
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    if not gap_analysis:
+        raise HTTPException(status_code=404, detail="Gap analysis not found")
+    
+    # Parse comma-separated values
+    tech_stack_list = [t.strip() for t in tech_stack.split(",") if t.strip()] if tech_stack else []
+    goals_list = [g.strip() for g in goals.split(",") if g.strip()] if goals else []
+    
+    # Prepare project info
+    project_info = {
+        "name": project_name,
+        "description": project_description,
+        "organization": organization or "",
+        "team_role": team_role,
+        "tech_stack": tech_stack_list,
+        "goals": goals_list,
+        "timeline": timeline or ""
+    }
+    
+    # Prepare gap analysis data
+    gap_data = {
+        "existing_skills": gap_analysis.existing_skills or [],
+        "missing_skills": gap_analysis.missing_skills or [],
+        "skill_gaps": gap_analysis.skill_gaps or [],
+        "gap_priority": gap_analysis.gap_priority or []
+    }
+    
+    # Generate project-specific training
+    training_data = training_generator.generate_project_training(
+        gap_analysis=gap_data,
+        project_info=project_info,
+        existing_skills=resume.skills or []
+    )
+    
+    # Save training module
+    training_module = TrainingModule(
+        resume_id=resume_id,
+        gap_analysis_id=gap_analysis_id,
+        title=training_data.get("title", f"Training for {project_name}"),
+        description=training_data.get("description"),
+        learning_objectives=training_data.get("learning_objectives"),
+        modules=training_data.get("modules", []),
+        case_studies=training_data.get("case_studies"),
+        practical_exercises=training_data.get("practical_exercises"),
+        resources=training_data.get("resources"),
+        estimated_duration=training_data.get("estimated_duration"),
+        difficulty_level="intermediate"
+    )
+    db.add(training_module)
+    db.commit()
+    db.refresh(training_module)
+    
+    return {
+        "id": training_module.id,
+        "title": training_module.title,
+        "description": training_module.description,
+        "team_role": training_data.get("team_role"),
+        "project_name": training_data.get("project_name"),
+        "organization": training_data.get("organization"),
+        "phases": training_data.get("phases"),
+        "learning_objectives": training_module.learning_objectives,
+        "modules": training_module.modules,
+        "case_studies": training_module.case_studies,
+        "resources": training_module.resources,
+        "milestones": training_data.get("milestones"),
+        "estimated_duration": training_module.estimated_duration,
+        "status": training_module.status
+    }
 
