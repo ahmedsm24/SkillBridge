@@ -70,10 +70,10 @@ export default function TrainingModules({
           <span>{error}</span>
         </div>
         <div className="flex gap-3">
-          <button onClick={onBack} className="btn-secondary">
+          <button type="button" onClick={onBack} className="btn-secondary">
             Back
           </button>
-          <button onClick={generateModules} className="btn-primary">
+          <button type="button" onClick={generateModules} className="btn-primary">
             Retry
           </button>
         </div>
@@ -271,10 +271,10 @@ export default function TrainingModules({
       )}
 
       <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
-        <button onClick={onBack} className="btn-secondary">
+        <button type="button" onClick={onBack} className="btn-secondary">
           Back
         </button>
-        <button onClick={generateModules} className="btn-primary flex-1">
+        <button type="button" onClick={generateModules} className="btn-primary flex-1">
           Regenerate Modules
         </button>
       </div>

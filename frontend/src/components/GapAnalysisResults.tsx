@@ -71,10 +71,10 @@ export default function GapAnalysisResults({
           <span>{error}</span>
         </div>
         <div className="flex gap-3">
-          <button onClick={onBack} className="btn-secondary">
+          <button type="button" onClick={onBack} className="btn-secondary">
             Back
           </button>
-          <button onClick={performAnalysis} className="btn-primary">
+          <button type="button" onClick={performAnalysis} className="btn-primary">
             Retry
           </button>
         </div>
@@ -186,10 +186,11 @@ export default function GapAnalysisResults({
       )}
 
       <div className="flex gap-3 pt-4 border-t border-[var(--border-color)]">
-        <button onClick={onBack} className="btn-secondary">
+        <button type="button" onClick={onBack} className="btn-secondary">
           Back
         </button>
         <button
+          type="button"
           onClick={() => onAnalysisComplete(gapAnalysis.id)}
           className="btn-primary flex-1"
         >
