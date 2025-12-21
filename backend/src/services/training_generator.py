@@ -3,6 +3,7 @@ Training module generator that creates personalized learning paths
 based on identified skill gaps.
 """
 import logging
+import asyncio
 from typing import Dict, List, Optional, Any
 try:
     from langchain_openai import ChatOpenAI
@@ -19,6 +20,8 @@ except ImportError:
         LANGCHAIN_AVAILABLE = False
         LANGCHAIN_LEGACY = False
 import json
+
+from src.services.semantic_scholar import semantic_scholar
 
 logger = logging.getLogger(__name__)
 
@@ -554,4 +557,168 @@ class TrainingGenerator:
                 {"week": len(all_modules), "milestone": "Fully Productive", "deliverable": "Independent task completion"}
             ]
         }
+    
+    async def enrich_with_research_papers(
+        self,
+        training_data: Dict[str, Any],
+        skill_gaps: List[str],
+        domain: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Enrich training modules with real research papers from Semantic Scholar.
+        
+        Args:
+            training_data: Generated training data
+            skill_gaps: List of skills to find papers for
+            domain: Industry domain for context
+            
+        Returns:
+            Training data enriched with research papers
+        """
+        try:
+            # Fetch papers for each skill
+            papers_by_skill = await semantic_scholar.get_papers_for_skills(
+                skills=skill_gaps[:5],
+                domain=domain,
+                papers_per_skill=3
+            )
+            
+            # Fetch case study papers
+            main_topic = skill_gaps[0] if skill_gaps else domain
+            case_study_papers = await semantic_scholar.get_case_studies(
+                topic=main_topic,
+                domain=domain,
+                limit=3
+            )
+            
+            # Add papers to resources
+            research_resources = []
+            for skill, papers in papers_by_skill.items():
+                for paper in papers:
+                    research_resources.append({
+                        "type": "research_paper",
+                        "title": paper.get("title", ""),
+                        "authors": paper.get("authors", ""),
+                        "year": paper.get("year"),
+                        "citations": paper.get("citations", 0),
+                        "url": paper.get("url", ""),
+                        "pdf_url": paper.get("pdf_url"),
+                        "abstract": paper.get("abstract"),
+                        "skill": skill,
+                        "venue": paper.get("venue", "")
+                    })
+            
+            # Add case studies
+            enriched_case_studies = training_data.get("case_studies", [])
+            for paper in case_study_papers:
+                enriched_case_studies.append({
+                    "title": paper.get("title", ""),
+                    "description": paper.get("abstract", "")[:300] + "..." if paper.get("abstract") else "Research case study",
+                    "authors": paper.get("authors", ""),
+                    "year": paper.get("year"),
+                    "url": paper.get("url", ""),
+                    "pdf_url": paper.get("pdf_url"),
+                    "type": "research",
+                    "learning_outcomes": [
+                        "Understand real-world application",
+                        "Learn from published research",
+                        "Apply academic insights to practice"
+                    ]
+                })
+            
+            # Merge with existing resources
+            existing_resources = training_data.get("resources", [])
+            training_data["resources"] = existing_resources + research_resources
+            training_data["case_studies"] = enriched_case_studies
+            training_data["research_papers_count"] = len(research_resources)
+            
+            logger.info(f"Enriched training with {len(research_resources)} research papers")
+            
+        except Exception as e:
+            logger.warning(f"Failed to enrich with research papers: {str(e)}")
+            # Return original data if enrichment fails
+        
+        return training_data
+    
+    async def generate_training_modules_async(
+        self,
+        gap_analysis: Dict[str, Any],
+        job_title: str,
+        domain: str,
+        existing_skills: List[str],
+        include_research: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Async version of generate_training_modules with research paper enrichment.
+        
+        Args:
+            gap_analysis: Results from gap analysis
+            job_title: Target job title
+            domain: Industry domain
+            existing_skills: Skills the candidate already has
+            include_research: Whether to fetch research papers
+            
+        Returns:
+            Training data enriched with research papers
+        """
+        # Generate base training modules
+        training_data = self.generate_training_modules(
+            gap_analysis=gap_analysis,
+            job_title=job_title,
+            domain=domain,
+            existing_skills=existing_skills
+        )
+        
+        # Enrich with research papers if requested
+        if include_research:
+            skill_gaps = [gap.get("skill", "") for gap in gap_analysis.get("gap_priority", [])]
+            training_data = await self.enrich_with_research_papers(
+                training_data=training_data,
+                skill_gaps=skill_gaps,
+                domain=domain
+            )
+        
+        return training_data
+    
+    async def generate_project_training_async(
+        self,
+        gap_analysis: Dict[str, Any],
+        project_info: Dict[str, Any],
+        existing_skills: List[str],
+        include_research: bool = True
+    ) -> Dict[str, Any]:
+        """
+        Async version of generate_project_training with research paper enrichment.
+        
+        Args:
+            gap_analysis: Results from gap analysis
+            project_info: Project details
+            existing_skills: Skills the candidate already has
+            include_research: Whether to fetch research papers
+            
+        Returns:
+            Training data enriched with research papers
+        """
+        # Generate base project training
+        training_data = self.generate_project_training(
+            gap_analysis=gap_analysis,
+            project_info=project_info,
+            existing_skills=existing_skills
+        )
+        
+        # Enrich with research papers if requested
+        if include_research:
+            skill_gaps = [gap.get("skill", "") for gap in gap_analysis.get("gap_priority", [])]
+            # Also include tech stack in search
+            tech_stack = project_info.get("tech_stack", [])
+            all_topics = skill_gaps + tech_stack
+            
+            domain = project_info.get("organization", "")
+            training_data = await self.enrich_with_research_papers(
+                training_data=training_data,
+                skill_gaps=all_topics[:6],
+                domain=domain
+            )
+        
+        return training_data
 

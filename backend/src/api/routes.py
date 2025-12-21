@@ -213,10 +213,12 @@ async def perform_gap_analysis(
 @router.post("/training-modules/generate")
 async def generate_training_modules(
     gap_analysis_id: int = Form(...),
+    include_research: bool = Form(True),
     db: Session = Depends(get_db)
 ):
     """
     Generate training modules based on gap analysis.
+    Includes real research papers from Semantic Scholar when include_research=True.
     """
     # Get gap analysis
     gap_analysis = db.query(GapAnalysis).filter(GapAnalysis.id == gap_analysis_id).first()
@@ -235,12 +237,13 @@ async def generate_training_modules(
         "gap_priority": gap_analysis.gap_priority or []
     }
     
-    # Generate training modules
-    training_data = training_generator.generate_training_modules(
+    # Generate training modules with research papers
+    training_data = await training_generator.generate_training_modules_async(
         gap_analysis=gap_data,
         job_title=job_desc.title,
         domain=job_desc.domain or "general",
-        existing_skills=gap_analysis.existing_skills or []
+        existing_skills=gap_analysis.existing_skills or [],
+        include_research=include_research
     )
     
     # Save training module
@@ -273,7 +276,8 @@ async def generate_training_modules(
         "status": training_module.status,
         "progress": training_module.progress,
         "estimated_duration": training_module.estimated_duration,
-        "difficulty_level": training_module.difficulty_level
+        "difficulty_level": training_module.difficulty_level,
+        "research_papers_count": training_data.get("research_papers_count", 0)
     }
 
 
@@ -336,6 +340,7 @@ async def generate_project_training(
     tech_stack: str = Form(""),  # Comma-separated
     goals: str = Form(""),  # Comma-separated
     timeline: str = Form(None),
+    include_research: bool = Form(True),
     db: Session = Depends(get_db)
 ):
     """
@@ -344,6 +349,8 @@ async def generate_project_training(
     This creates a two-phase training program:
     1. Foundation Phase: Fill skill gaps from resume analysis
     2. Project Phase: Project-specific skills and knowledge
+    
+    Includes real research papers from Semantic Scholar when include_research=True.
     """
     # Get resume and gap analysis
     resume = db.query(Resume).filter(Resume.id == resume_id).first()
@@ -377,11 +384,12 @@ async def generate_project_training(
         "gap_priority": gap_analysis.gap_priority or []
     }
     
-    # Generate project-specific training
-    training_data = training_generator.generate_project_training(
+    # Generate project-specific training with research papers
+    training_data = await training_generator.generate_project_training_async(
         gap_analysis=gap_data,
         project_info=project_info,
-        existing_skills=resume.skills or []
+        existing_skills=resume.skills or [],
+        include_research=include_research
     )
     
     # Save training module
@@ -416,6 +424,7 @@ async def generate_project_training(
         "resources": training_module.resources,
         "milestones": training_data.get("milestones"),
         "estimated_duration": training_module.estimated_duration,
-        "status": training_module.status
+        "status": training_module.status,
+        "research_papers_count": training_data.get("research_papers_count", 0)
     }
 

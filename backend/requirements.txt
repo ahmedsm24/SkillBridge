@@ -21,3 +21,6 @@ bcrypt==4.1.2
 
 # File handling
 aiofiles==23.2.1
+
+# HTTP client for Semantic Scholar API
+httpx==0.26.0

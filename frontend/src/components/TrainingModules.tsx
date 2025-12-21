@@ -334,17 +334,58 @@ export default function TrainingModules({
         </div>
       )}
 
-      {/* Case Studies */}
+      {/* Case Studies & Research Papers */}
       {trainingModule.case_studies && trainingModule.case_studies.length > 0 && (
         <div>
-          <p className="section-header">Case Studies</p>
+          <p className="section-header">Case Studies & Research</p>
           <div className="space-y-3">
             {trainingModule.case_studies.map((caseStudy: any, idx: number) => (
               <div key={idx} className="p-4 border border-[var(--border-color)] rounded-lg">
-                <h4 className="font-medium text-[var(--text-primary)]">{caseStudy.title}</h4>
-                <p className="text-sm text-[var(--text-secondary)] mt-1">{caseStudy.description}</p>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      {caseStudy.type === 'research' && (
+                        <span className="text-xs px-2 py-0.5 bg-[var(--accent-primary)] bg-opacity-10 text-[var(--accent-primary)] rounded">
+                          Research Paper
+                        </span>
+                      )}
+                      {caseStudy.year && (
+                        <span className="text-xs text-[var(--text-muted)]">{caseStudy.year}</span>
+                      )}
+                    </div>
+                    <h4 className="font-medium text-[var(--text-primary)]">{caseStudy.title}</h4>
+                    {caseStudy.authors && (
+                      <p className="text-xs text-[var(--text-muted)] mt-1">{caseStudy.authors}</p>
+                    )}
+                    <p className="text-sm text-[var(--text-secondary)] mt-2">{caseStudy.description}</p>
+                  </div>
+                  {(caseStudy.url || caseStudy.pdf_url) && (
+                    <div className="flex flex-col gap-1">
+                      {caseStudy.url && (
+                        <a
+                          href={caseStudy.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-2 py-1 bg-[var(--bg-tertiary)] text-[var(--accent-highlight)] rounded hover:bg-[var(--bg-accent)] transition-colors"
+                        >
+                          View
+                        </a>
+                      )}
+                      {caseStudy.pdf_url && (
+                        <a
+                          href={caseStudy.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xs px-2 py-1 bg-[var(--accent-secondary)] bg-opacity-10 text-[var(--accent-secondary)] rounded hover:bg-opacity-20 transition-colors"
+                        >
+                          PDF
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {caseStudy.learning_outcomes && caseStudy.learning_outcomes.length > 0 && (
-                  <div className="mt-3">
+                  <div className="mt-3 pt-3 border-t border-[var(--border-color)]">
                     <p className="text-xs text-[var(--text-muted)] mb-1">Learning Outcomes:</p>
                     <ul className="space-y-1">
                       {caseStudy.learning_outcomes.map((outcome: string, oidx: number) => (
@@ -365,26 +406,75 @@ export default function TrainingModules({
       {/* Resources */}
       {trainingModule.resources && trainingModule.resources.length > 0 && (
         <div>
-          <p className="section-header">Resources</p>
+          <p className="section-header">
+            Resources
+            {trainingModule.research_papers_count > 0 && (
+              <span className="ml-2 text-xs font-normal text-[var(--accent-secondary)]">
+                ({trainingModule.research_papers_count} research papers from Semantic Scholar)
+              </span>
+            )}
+          </p>
           <div className="space-y-2">
             {trainingModule.resources.map((resource: any, idx: number) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg">
-                <div className="flex items-center gap-3">
-                  <span className="text-xs px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-muted)] rounded uppercase">
-                    {resource.type}
-                  </span>
-                  <span className="text-sm text-[var(--text-primary)]">{resource.title}</span>
+              <div key={idx} className={`p-3 rounded-lg ${resource.type === 'research_paper' ? 'bg-[var(--accent-primary)] bg-opacity-5 border border-[var(--accent-primary)] border-opacity-20' : 'bg-[var(--bg-tertiary)]'}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className={`text-xs px-2 py-0.5 rounded uppercase ${
+                        resource.type === 'research_paper' 
+                          ? 'bg-[var(--accent-primary)] bg-opacity-10 text-[var(--accent-primary)]' 
+                          : 'bg-[var(--bg-secondary)] border border-[var(--border-color)] text-[var(--text-muted)]'
+                      }`}>
+                        {resource.type === 'research_paper' ? 'Paper' : resource.type}
+                      </span>
+                      {resource.year && (
+                        <span className="text-xs text-[var(--text-muted)]">{resource.year}</span>
+                      )}
+                      {resource.citations > 0 && (
+                        <span className="text-xs text-[var(--text-muted)]">
+                          {resource.citations} citations
+                        </span>
+                      )}
+                      {resource.skill && (
+                        <span className="text-xs px-2 py-0.5 bg-[var(--bg-tertiary)] text-[var(--text-muted)] rounded">
+                          {resource.skill}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">{resource.title}</p>
+                    {resource.authors && (
+                      <p className="text-xs text-[var(--text-muted)] mt-0.5">{resource.authors}</p>
+                    )}
+                    {resource.venue && (
+                      <p className="text-xs text-[var(--text-muted)] italic">{resource.venue}</p>
+                    )}
+                    {resource.abstract && (
+                      <p className="text-xs text-[var(--text-secondary)] mt-2 line-clamp-2">{resource.abstract}</p>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {resource.url && resource.url.startsWith('http') && (
+                      <a
+                        href={resource.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs px-2 py-1 bg-[var(--bg-secondary)] text-[var(--accent-highlight)] rounded hover:bg-[var(--bg-accent)] transition-colors whitespace-nowrap"
+                      >
+                        View
+                      </a>
+                    )}
+                    {resource.pdf_url && (
+                      <a
+                        href={resource.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs px-2 py-1 bg-[var(--accent-secondary)] bg-opacity-10 text-[var(--accent-secondary)] rounded hover:bg-opacity-20 transition-colors whitespace-nowrap"
+                      >
+                        PDF
+                      </a>
+                    )}
+                  </div>
                 </div>
-                {resource.url && resource.url.startsWith('http') && (
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-[var(--accent-highlight)] hover:underline"
-                  >
-                    View
-                  </a>
-                )}
               </div>
             ))}
           </div>
